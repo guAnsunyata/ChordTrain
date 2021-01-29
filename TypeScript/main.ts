@@ -13,13 +13,13 @@ var toxic = ['cm', 'eb', 'g', 'cdim', 'eb7', 'd7', 'db7', 'ab', 'gmaj7', 'g7'];
 var bulletproof = ['d#m', 'g#', 'b', 'f#', 'g#m', 'c#'];
 var song_11 = [];
 
-var songs = [];
-var labels = [];
-var allChords = [];
-var labelCounts = [];
-var labelProbabilities = [];
-var chordCountsInLabels = {};
-var probabilityOfChordsInLabels = {};
+var songs = [] as any;
+var labels = [] as any;
+var allChords = [] as any;
+var labelCounts = [] as any;
+var labelProbabilities = [] as any;
+var chordCountsInLabels = {} as any;
+var probabilityOfChordsInLabels = {} as any;
 
 function train(chords, label) {
   songs.push([label, chords]);
@@ -85,7 +85,7 @@ setLabelProbabilities();
 setChordCountsInLabels();
 setProbabilityOfChordsInLabels();
 
-function classify(chords){
+export function classify(chords){
   var ttal = labelProbabilities;
   console.log(ttal);
   var classified = {};
@@ -103,6 +103,3 @@ function classify(chords){
   });
   console.log(classified);
 };
-
-classify(['d', 'g', 'e', 'dm']);
-classify(['f#m7', 'a', 'dadd9', 'dmaj7', 'bm', 'bm7', 'd', 'f#m']);
