@@ -21,6 +21,104 @@ var labelProbabilities = [] as any;
 var chordCountsInLabels = {} as any;
 var probabilityOfChordsInLabels = {} as any;
 
+// # terminology
+// category = answer
+// attrKey: attr
+// categoryAttrCountMap { c1: { a1: 1, a2: 2 }, c2: { ... }}
+export class CategoryAttrCountMap {
+  private records = [] as any
+  private categoryCountMap = {}
+  private countMap = {}
+
+  addRecord(attrs, category) {
+    // save
+    this.records.push([attrs, category])
+
+    // count
+    this.categoryCountMap[category] = this.categoryCountMap[category] ? this.categoryCountMap[category] + 1 : 1
+
+    // count
+    if (!this.countMap[category]) {
+      this.countMap[category] = {}
+    }
+    attrs.map(attr => {
+      this.countMap[category][attr] = this.countMap[category][attr] ? this.countMap[category][attr] + 1 : 1
+    })
+  }
+
+  getMap() {
+    return this.countMap
+  }
+
+  getCategoryProbabilityMap() {
+    return Object.keys(this.categoryCountMap).reduce((acc, categoryKey) => {
+      acc[categoryKey] = this.categoryCountMap[categoryKey] / this.records.length
+      return acc
+    }, {} as any)
+  }
+
+  getProbabilityMap() {
+    const categoryKeys = Object.keys(this.categoryCountMap)
+    return categoryKeys.reduce((acc, categoryKey) => {
+      // category
+      const category = this.countMap[categoryKey]
+      const attrMap = Object.keys(category)
+
+      // attr
+      const probabilityMap = attrMap.reduce((acc, attr) => {
+        const attrCount = category[attr]
+        acc[attr] = attrCount / this.records.length
+        return acc
+      }, {} as any)
+
+      acc[categoryKey] = probabilityMap
+      return acc
+    }, {} as any)
+  }
+
+  // records derive -> find categories string map
+  // records derive -> find category probability
+  // records derive -> find attr probability in given category
+  classify(attrs) {
+    let categoryProbabilityMap = this.getCategoryProbabilityMap()
+    const probabilityMap = this.getProbabilityMap()
+
+    const classified = {}
+
+    Object.keys(this.categoryCountMap).forEach(function(category) {
+      let categoryProbability = categoryProbabilityMap[category] + 1.01
+      // traverse given chords to calculate probability appearing in different labels
+      attrs.forEach(function(attr){
+        let attrProbability = probabilityMap[category][attr];
+
+        if(attrProbability){
+          categoryProbability = categoryProbability * (attrProbability + 1.01);
+        }
+      });
+
+      classified[category] = categoryProbability;
+    });
+  }
+}
+
+
+// # train(attr, category)
+// update attrMap
+// update categoryCount map
+
+// # category 出現機率
+// make categoryProbabilities
+// depend on categoryCount[n] / mapSum(categoryCount)
+
+// # 每個 category 下 attr 出現的數量
+// make attrCountsInCategories
+
+// # 算出每個 category 下 attr 出現的的機率
+// make attrProbabilityInCategories
+
+// # 讀取 attrs - 計算每個 category 出現機率 x attr 在該 category 出現的機率
+// traverse all attr & calculate the answer
+
 function train(chords, label) {
   // store original songs and labels
   songs.push([label, chords]);
@@ -66,7 +164,8 @@ function setChordCountsInLabels(){
       chordCountsInLabels[label] = {};
     }
 
-    // unused code
+    // calculate chordCount for each labels
+    // e.g. { easy: { c: 1, cmaj7: 1, ... } }
     const chords = song[1];
     chords.forEach(function(chord){
       let chordCount = chordCountsInLabels[label][chord];
@@ -81,7 +180,7 @@ function setChordCountsInLabels(){
 
 
 function setProbabilityOfChordsInLabels(){
-  // tend to have structure map taking label as key
+  // tend to make a structure map taking label as key and value is chord map
   // e.g. { easy: { cmaj7:: 0 }, medium: { ... }, hard: { ... } }
   probabilityOfChordsInLabels = chordCountsInLabels;
 
@@ -108,14 +207,16 @@ setLabelProbabilities();
 setChordCountsInLabels();
 setProbabilityOfChordsInLabels();
 
+// attr, probability[label][chord]
 export function classify(chords){
   var ttal = labelProbabilities;
   console.log(ttal);
   var classified = {};
+
   Object.keys(ttal).forEach(function(label) {
     var labelProbability = labelProbabilities[label] + 1.01;
 
-    // traverse all chords in label
+    // traverse given chords to calculate probability appearing in different labels
     chords.forEach(function(chord){
       var probabilityOfChordsInLabel = probabilityOfChordsInLabels[label][chord];
 
