@@ -152,3 +152,8 @@ export function classify(chords){
     console.log(classified);
   });
 };
+
+export default function main() {
+  classify((['d', 'g', 'e', 'dm']))
+  classify(['f#m7', 'a', 'dadd9', 'dmaj7', 'bm', 'bm7', 'd', 'f#m'])
+}
