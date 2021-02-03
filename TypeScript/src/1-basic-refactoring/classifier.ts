@@ -30,59 +30,91 @@
  * - Change magic number into explicit variables or functions
  * - Code Formatting (done mostly by prettier & eslint)
  */
+import R from 'ramda'
+
+const transformArrToMap = R.curry((keyProp, valProp, target) =>
+  R.reduce(
+    (acc, obj) => R.merge({ [obj[keyProp]]: obj[valProp] }, acc),
+    {},
+    target
+  )
+)
 
 export class Classifier {
   protected records: TrainingRecord[] = []
 
-  addRecord(attrs: Attr[], category: Category): void {
+  public addRecord(attrs: Attr[], category: Category): void {
     // save
     this.records.push({ attrs, category })
   }
 
-  get categories(): Category[] {
-    const acc = this.records.reduce<Set<Category>>((acc, record) => {
-      return acc.add(record.category)
-    }, new Set())
-
-    return [...acc]
+  protected get categories(): Category[] {
+    // prettier-ignore
+    return R.pipe(
+      R.map(R.prop('category')),
+      R.uniq
+    )(this.records)
   }
 
-  findCategoryProbability(category: Category): number {
-    const targetLength = this.records.filter(
-      (record) => record.category === category
-    ).length
-    const totalLength = this.records.length
+  protected findCategoryProbability(category: Category): number {
+    const totalLength = R.length(this.records)
+    const matchCategory = R.pipe(R.prop('category'), R.equals(category))
+
+    // prettier-ignore
+    const targetLength = R.pipe(
+      R.filter(matchCategory),
+      R.length
+    )(this.records)
 
     return targetLength / totalLength
   }
 
-  findAttrProbability(category: Category, attr: Attr): number {
-    const targetAttrCount = this.records
-      .filter((record) => record.category === category)
-      .reduce((acc, record) => {
-        const hasTargetAttr = record.attrs.find((_attr) => _attr === attr)
-        acc = hasTargetAttr ? acc + 1 : acc
-        return acc
-      }, 0)
+  protected findAttrProbability(category: Category, attr: Attr): number {
+    const totalLength = R.length(this.records)
 
-    return targetAttrCount / this.records.length
+    const matchCategory = R.pipe(R.prop('category'), R.equals(category))
+    const matchAttr = R.pipe(R.prop('attrs'), R.find(R.equals(attr)))
+
+    // prettier-ignore
+    const matchedRecordLength = R.pipe(
+      R.filter(
+        R.both(matchCategory, matchAttr)
+      ),
+      R.length
+    )(this.records)
+
+    return matchedRecordLength / totalLength
   }
 
-  classify(attrs: Attr[]): Record<Category, number> {
-    return this.categories.reduce((acc, category) => {
-      const categoryProbability = this.findCategoryProbability(category) + 1.01
+  public classify(attrs: Attr[]): Record<Category, number> {
+    // accum attrs p in category
+    // prettier-ignore
 
-      const result = attrs.reduce((acc, attr) => {
-        const attrProbability = this.findAttrProbability(category, attr)
-        if (attrProbability === 0) return acc
+    // { category, probability }
+    return R.pipe(
+      R.map(
+        (category) => {
+          const categoryProbability = this.findCategoryProbability.bind(this)(category) + 1.01
+          const findAttrProbabilityInCategory = R.partial(this.findAttrProbability.bind(this), [category])
+          // const multi = (acc, i) => acc * i
 
-        acc = acc * (attrProbability + 1.01)
-        return acc
-      }, categoryProbability)
+          // R.reduce(, categoryProbability, attrs)
+          const attrsP = R.pipe(
+            R.map(findAttrProbabilityInCategory),
+            R.reject(R.equals(0)),
+            R.map(R.add(1.01))
+          )(attrs)
 
-      acc[category] = result
-      return acc
-    }, {})
+          const probability = R.reduce(R.multiply, categoryProbability, attrsP)
+
+          return {
+            category,
+            probability,
+          }
+        }
+      ),
+      transformArrToMap('category', 'probability')
+    )(this.categories)
   }
 }
 
