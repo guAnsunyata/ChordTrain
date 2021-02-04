@@ -8,6 +8,7 @@
     "test": "jest --coverage"
   },
   "dependencies": {
+    "ramda": "^0.27.1",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
   },
