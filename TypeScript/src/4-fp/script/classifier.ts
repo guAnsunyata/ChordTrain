@@ -1,4 +1,17 @@
-import { length, pipe, map, prop, uniq, curry, reject, equals, add, reduce, multiply, partial } from 'ramda'
+import {
+  length,
+  pipe,
+  map,
+  prop,
+  uniq,
+  curry,
+  reject,
+  equals,
+  add,
+  reduce,
+  multiply,
+  partial,
+} from 'ramda'
 import { recordOf as _recordOf } from './records-of'
 import { TrainingRecord, Attr, Category } from '../types/record'
 import { transformArrToMap } from '../utils'
@@ -14,7 +27,8 @@ const classify: Classify = (records, attrs) => {
   return pipe(
     map((category) => {
       const categoryProbability = length(recordOf(category)) / length(records)
-      const findAttrProbability = (attr) => length(recordOf(category, attr)) / length(records)
+      const findAttrProbability = (attr) =>
+        length(recordOf(category, attr)) / length(records)
 
       const attrProbabilities = pipe(
         map(findAttrProbability),
@@ -39,4 +53,6 @@ type Classify = (
   attrs: Attr[]
 ) => Record<Category, number>
 
-type Classifier = (records: TrainingRecord[]) => Classify
+type Classify1 = (attrs: Attr[]) => Record<Category, number>
+
+type Classifier = (records: TrainingRecord[]) => Classify1
